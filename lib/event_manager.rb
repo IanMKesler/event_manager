@@ -104,9 +104,8 @@ if File.exist? "event_attendees.csv"
 
     
 
-    #form_letter = erb_template.result(binding)
-    #save_thank_you_letters(id, form_letter)
-    #puts form_letter
+    form_letter = erb_template.result(binding)
+    save_thank_you_letters(id, form_letter)
   }
   save_overview(hours, number_of_attendees, days)
 end
