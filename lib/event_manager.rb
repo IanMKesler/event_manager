@@ -2,6 +2,7 @@ require "csv"
 require "google/apis/civicinfo_v2"
 require "erb"
 require "facets"
+require "date"
 
 # def clean_zipcode(zipcode)
 #   return "00000" if !zipcode  #can change to an empty string with nil.to_s => ""
@@ -38,7 +39,8 @@ def format_phone_number(number_split)
 end
 
 def get_hour(date)
-  time = DateTime.strptime(date, '%m/%d/%y %H:%M')
+  
+  time = 
   time.hour
 end
 
@@ -62,11 +64,20 @@ def save_thank_you_letters(id, form_letter)
   File.open(filename, 'w') { |file| file.puts form_letter}
 end
 
-def save_overview(hours, number_of_attendees)
+def save_overview(hours, number_of_attendees, days)
   filename = "output/summary.txt"
-  most = hours.mode
-  number = hours.select {|hour| hour == most[0]}.length.to_f
-  File.open(filename, 'w') {|file| file.puts "#{most} with #{(number/number_of_attendees)*100}% of #{number_of_attendees} guests"}
+
+  most_hours = hours.mode
+  number_hours = hours.select {|hour| hour == most_hours[0]}.length.to_f
+
+  most_days = days.mode
+  number_days = days.select {|day| day == most_days[0]}.length.to_f
+  most_days.map! {|day_number| Date::DAYNAMES[day_number]}
+
+  File.open(filename, 'w') {|file| 
+    file.puts "Most productive hours: #{most_hours} with #{(number_hours/number_of_attendees)*100}%"
+    file.puts "Most productive days: #{most_days} with #{number_days/number_of_attendees*100}%"
+  }
 end
 
 puts "EventManager Initialized!"
@@ -76,14 +87,17 @@ if File.exist? "event_attendees.csv"
   template_letter = File.read "form_letter.erb"
   erb_template = ERB.new template_letter
   hours = []
+  days = []
 
   contents.each { |row|
     number_of_attendees += 1
     id = row[0]
     name = row[:first_name]
     phone = clean_phone_number(row[:homephone])
-    hour = get_hour(row[:regdate])
-    hours << hour
+    date_time = DateTime.strptime(row[:regdate], '%m/%d/%y %H:%M')
+
+    hours << date_time.hour
+    days << date_time.wday
 
     zipcode = clean_zipcode(row[:zipcode])
     legislators = legislators_by_zipcode(zipcode)
@@ -94,7 +108,7 @@ if File.exist? "event_attendees.csv"
     #save_thank_you_letters(id, form_letter)
     #puts form_letter
   }
-  save_overview(hours, number_of_attendees)
+  save_overview(hours, number_of_attendees, days)
 end
 
 

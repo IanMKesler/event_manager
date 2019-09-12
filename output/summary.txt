@@ -1,1 +1,2 @@
-[13, 16] with 15.789473684210526% of 19 guests
+Most productive hours: [13, 16] with 15.789473684210526%
+Most productive days: ["Wednesday"] with 36.84210526315789%
