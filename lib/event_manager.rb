@@ -1,6 +1,7 @@
 require "csv"
 require "google/apis/civicinfo_v2"
 require "erb"
+require "facets"
 
 # def clean_zipcode(zipcode)
 #   return "00000" if !zipcode  #can change to an empty string with nil.to_s => ""
@@ -36,6 +37,11 @@ def format_phone_number(number_split)
   return (number_split[0..2] + ["-"] + number_split[3..5] + ["-"] + number_split[6..-1]).join("")
 end
 
+def get_hour(date)
+  time = DateTime.strptime(date, '%m/%d/%y %H:%M')
+  time.hour
+end
+
 def legislators_by_zipcode(zipcode)
   civic_info = Google::Apis::CivicinfoV2::CivicInfoService.new
   civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
@@ -56,27 +62,39 @@ def save_thank_you_letters(id, form_letter)
   File.open(filename, 'w') { |file| file.puts form_letter}
 end
 
+def save_overview(hours, number_of_attendees)
+  filename = "output/summary.txt"
+  most = hours.mode
+  number = hours.select {|hour| hour == most[0]}.length.to_f
+  File.open(filename, 'w') {|file| file.puts "#{most} with #{(number/number_of_attendees)*100}% of #{number_of_attendees} guests"}
+end
 
 puts "EventManager Initialized!"
 if File.exist? "event_attendees.csv"
   contents = CSV.open "event_attendees.csv", headers: true, header_converters: :symbol
+  number_of_attendees = 0
   template_letter = File.read "form_letter.erb"
   erb_template = ERB.new template_letter
+  hours = []
 
   contents.each { |row|
+    number_of_attendees += 1
     id = row[0]
     name = row[:first_name]
     phone = clean_phone_number(row[:homephone])
+    hour = get_hour(row[:regdate])
+    hours << hour
 
     zipcode = clean_zipcode(row[:zipcode])
     legislators = legislators_by_zipcode(zipcode)
 
     
 
-    form_letter = erb_template.result(binding)
-    save_thank_you_letters(id, form_letter)
+    #form_letter = erb_template.result(binding)
+    #save_thank_you_letters(id, form_letter)
     #puts form_letter
   }
+  save_overview(hours, number_of_attendees)
 end
 
 
